@@ -9,3 +9,5 @@ h5py
 torch
 torchvision
 torchaudio
+cvxpy
+pin

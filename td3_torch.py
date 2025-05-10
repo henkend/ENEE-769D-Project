@@ -8,7 +8,7 @@ from networks import ActorNetwork, CriticNetwork
 class Agent:
 
     def __init__(self, actor_learning_rate, critic_learning_rate, input_dims, tau, env, gamma=0.99, update_actor_interval=2, warmup=3000,
-                 n_actions=2, max_size=1000000, layer1_size=256, layer2_size=128, batch_size=100, noise=0.5):
+                 n_actions=2, max_size=1000000, layer1_size=256, layer2_size=128, batch_size=100, noise=0.4):
         
         self.gamma = gamma
         self.tau = tau

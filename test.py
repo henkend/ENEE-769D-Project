@@ -40,16 +40,16 @@ if __name__ == '__main__':
 
     env = GymWrapper(env)
 
-    actor_learning_rate = 0.001
-    critic_learning_rate = 0.001
-    batch_size = 64 #video is 128
+    actor_learning_rate = 0.01
+    critic_learning_rate = 0.01
+    batch_size = 100 #video is 128
     layer_1_size = 256
     layer_2_size = 128
 
-    agent = Agent(actor_learning_rate=actor_learning_rate, critic_learning_rate=critic_learning_rate, tau=0.005, input_dims=env.observation_space.shape,
+    agent = Agent(actor_learning_rate=actor_learning_rate, critic_learning_rate=critic_learning_rate, tau=0.01, input_dims=env.observation_space.shape,
                   env=env, n_actions=env.action_space.shape[0], layer1_size=layer_1_size, layer2_size=layer_2_size, batch_size=batch_size,)
     
-    n_games = 5
+    n_games = 15
     best_score = 0
 
     agent.load_models()
