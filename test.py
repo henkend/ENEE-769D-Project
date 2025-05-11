@@ -8,6 +8,8 @@ from robosuite.controllers.composite.composite_controller_factory import refacto
 from robosuite.wrappers import GymWrapper
 from td3_torch import Agent
 
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 if __name__ == '__main__':
 
     if not os.path.exists("tmp/td3"):
@@ -68,11 +70,16 @@ if __name__ == '__main__':
             if isinstance(observation, tuple):
                 observation = observation[0]
 
-            action = agent.choose_action(observation=observation, validation=True)
+            #action = agent.choose_action(observation=observation, validation=True)
+
+            action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05]
             
+            print(observation)
+
             next_observation, reward, done, done2, info = env.step(action)
-            done = done or done2
             env.render()
+
+            print(next_observation)
 
             score += reward
             observation = next_observation

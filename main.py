@@ -1,12 +1,13 @@
 import time
 import os
-import gym
 import numpy as np
 import robosuite as suite
 from robosuite.controllers.composite.composite_controller_factory import refactor_composite_controller_config
 from robosuite.wrappers import GymWrapper
 from td3_torch import Agent
 from cbf import CBFController
+
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 if __name__ == '__main__':
 
@@ -54,22 +55,22 @@ if __name__ == '__main__':
     agent.load_models()
 
     # Load robot and controller
-    theta_min = np.array([-2.9] * 7)
-    theta_max = np.array([2.9] * 7)
+    theta_min = np.array([-2.9] * 9)
+    theta_max = np.array([2.9] * 9)
     p_min = np.array([0.3, -0.5, 0.05])
     p_max = np.array([0.8, 0.5, 0.6])
 
     controller = CBFController(
-        urdf_path="Panda/panda.urdf",
-        mesh_dir="Panda/meshes/",
+        urdf_path="c://Project/Panda/panda.urdf",
+        mesh_dir="c://Project/",
         joint_limits=(theta_min, theta_max),
         workspace_bounds=(p_min, p_max),
         gamma=5.0
     )
 
     # Train the model
-    n_games = 200
-    best_score = 0
+    n_games = 300
+    best_score = -10000
 
     for i in range(n_games):
         observation = env.reset()
@@ -85,23 +86,33 @@ if __name__ == '__main__':
 
             # Extract joint state from observation
             theta = observation[14:21]
-            theta_dot = observation[35:44]
+            theta_dot = observation[35:42]
             handle_pos = observation[3:6]
+            griper_pos = observation[53:55]
+            griper_vel = observation[55:57]
+            
+            theta = np.hstack((theta, griper_pos))
+            theta_dot = np.hstack((theta_dot, griper_vel)) 
 
             # Sample action u_rl
-            u_rl = agent.choose_action(observation=observation, validation=True)
+            u_rl = agent.choose_action(observation=observation)
 
             # Filter with CBF
-            u_safe = controller.get_safe_action(theta, theta_dot, handle_pos, u_rl)
+            #u_safe = controller.get_safe_action(theta, theta_dot, handle_pos, u_rl)
             
             # Apply action
-            next_observation, reward, done, done2, info = env.step(u_safe)
+            next_observation, reward, done, done2, info = env.step(u_rl)
+
+            # CLF Reward
+            robot_tip = observation[42:45]
+            distance = np.linalg.norm(robot_tip - handle_pos)
+            V = -0.5 * distance**2
 
             # Update score
-            score += reward
+            score += reward + V
 
             # Save current context
-            agent.remember(observation, u_safe, reward, next_observation, done)
+            agent.remember(observation, u_rl, reward, next_observation, done)
 
             # Learn
             agent.learn()

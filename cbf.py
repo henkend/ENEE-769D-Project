@@ -36,9 +36,9 @@ class CBFController:
 
         # Kinematics
         self.robot.forwardKinematics(theta)
-        self.robot.updateFramePlacements()
+        #self.robot.updateGeometryPlacements()
         p = self.data.oMf[self.ee_frame].translation
-        J = self.robot.frameJacobian(theta, self.ee_frame)[:3, :]
+        J = self.robot.computeFrameJacobian(theta, self.ee_frame)[:3, :]  # 3x9
 
         A_list, b_list = [], []
 
@@ -55,10 +55,9 @@ class CBFController:
         return A_list, b_list
 
     def cbf_qp_filter(self, u_rl, A_list, b_list):
-        A = np.vstack(A_list)
+        A = np.hstack(A_list) #np.vstack(A_list)[:, :8]
         b = np.array(b_list)
         n = u_rl.shape[0]
-
         u = cp.Variable(n)
         objective = cp.Minimize(cp.sum_squares(u - u_rl))
         constraints = [A @ u <= b]
@@ -66,8 +65,9 @@ class CBFController:
         prob.solve(solver=cp.OSQP)
 
         if u.value is None:
-            print("[Warning] CBF QP infeasible — using fallback.")
+            #print("[Warning] CBF QP infeasible — using fallback.")
             return u_rl
+        print("Feasible QP")
         return u.value
 
     def get_safe_action(self, theta, theta_dot, goal_position, u_rl):
@@ -78,22 +78,27 @@ class CBFController:
         # CLF constraint for goal
         A_goal, b_goal = self.goal_clf_constraint(theta, goal_position)
 
-        A_total = A_joint + A_ws + A_goal
-        b_total = b_joint + b_ws + b_goal
+        A_total = A_goal
+        b_total = b_goal
+
+        print(A_total)
 
         return self.cbf_qp_filter(u_rl, A_total, b_total)
     
     def goal_clf_constraint(self, theta, p_goal, c=5.0):
         self.robot.forwardKinematics(theta)
-        self.robot.updateFramePlacements()
+        self.robot.updateGeometryPlacements()
         p = self.data.oMf[self.ee_frame].translation
-        J = self.robot.frameJacobian(theta, self.ee_frame)[:3, :]  # 3x7
+        J = self.robot.computeFrameJacobian(theta, self.ee_frame)[:3, :]  # 3x9
+
+        print("p: ", p)
+        print("p_goal: ", p_goal)
 
         error = p - p_goal
         V = 0.5 * np.dot(error, error)
-        grad_V = error.T @ J  # shape (1, 7)
+        grad_V = error.T @ J  # shape (1, 9)
         
         A = grad_V
         b = -c * V
-        return A, b
+        return A[:8], b
 
