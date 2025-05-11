@@ -93,7 +93,7 @@ if __name__ == '__main__':
             next_obs, reward, terminated, truncated, _ = env.step(filtered_act)
             done = terminated or truncated
 
-            buffer.store_transition(obs, act, reward, next_obs, done)
+            buffer.store_transition(obs, filtered_act, reward, next_obs, done)
             agent.update(buffer, batch_size)
 
             obs = next_obs
